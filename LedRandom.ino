@@ -15,6 +15,7 @@ const int FRONT_PROBABILITY_PIN = A2;
 const int HOOK_PROBABILITY_PIN = A3;
 const int LEFT_RIGHT_RESISTOR_PIN = A4;
 const int LED_ON_PERIOD_RESISTOR_PIN = A5;
+const int SPURT_PROBABILITY_PIN = A6;
 
 //app constants
 const int LED_ON = 255;
@@ -59,7 +60,7 @@ void setup() {
   pinMode(HIGH_RIGHT_UPPERCUT_LED_PIN, OUTPUT);
   pinMode(HIGH_RIGHT_FRONT_LED_PIN, OUTPUT);
   pinMode(HIGH_RIGHT_HOOK_LED_PIN, OUTPUT);
-  Serial.begin(9600);
+//  Serial.begin(9600);
 } 
 
 void loop() {
@@ -164,14 +165,6 @@ int getWhichToTurnOn() {
   int uppercutRandomValue = random(uppercutResistorPosition);
   int hookRandomValue = random(hookResistorPosition);
 
-  Serial.println(frontResistorPosition);
-  Serial.println(uppercutResistorPosition);
-  Serial.println(hookResistorPosition);
-  Serial.println(frontRandomValue);
-  Serial.println(uppercutRandomValue);
-  Serial.println(hookRandomValue);
-  Serial.println("");
-
   if (frontResistorPosition <= ANALOG_MIN_THRESHOLD
         && uppercutResistorPosition <= ANALOG_MIN_THRESHOLD
         && hookResistorPosition <= ANALOG_MIN_THRESHOLD) {
@@ -197,7 +190,7 @@ int getWhichToTurnOn() {
 }
 
 boolean shouldTurnOnLeft() {
-  return random(ANALOG_RANGE) > analogRead(LEFT_RIGHT_RESISTOR_PIN);
+  return random(ANALOG_RANGE) >= analogRead(LEFT_RIGHT_RESISTOR_PIN);
 }
 
 void processSpurt() {
@@ -210,7 +203,7 @@ void processSpurt() {
     return;
   }
 
-  spurtTime = random(100) < SPURT_PROBABILITY_COEFF;
+  spurtTime = random(ANALOG_RANGE) >= analogRead(SPURT_PROBABILITY_PIN);
 
   if (spurtTime) {
     totalHitsInThisSpurt = random(3, MAX_HITS_IN_SPURT + 1);
