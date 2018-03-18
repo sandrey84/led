@@ -1,12 +1,19 @@
 
 
 //pins
-const int LEFT_FRONT_LED_PIN = 32;
-const int LEFT_HOOK_LED_PIN = 30;
-const int RIGHT_FRONT_LED_PIN = 33;
-const int RIGHT_HOOK_LED_PIN = 31;
-const int LEFT_RIGHT_RESISTOR_PIN = A1;
+const int HIGH_LEFT_UPPERCUT_LED_PIN = 48;
+const int HIGH_LEFT_FRONT_LED_PIN = 50;
+const int HIGH_LEFT_HOOK_LED_PIN = 52;
+
+const int HIGH_RIGHT_UPPERCUT_LED_PIN = 49;
+const int HIGH_RIGHT_FRONT_LED_PIN = 51;
+const int HIGH_RIGHT_HOOK_LED_PIN = 53;
+
 const int SPEED_RESISTOR_PIN = A0;
+const int UPPERCUT_PROBABILITY_PIN = A1;
+const int FRONT_PROBABILITY_PIN = A2;
+const int HOOK_PROBABILITY_PIN = A3;
+const int LEFT_RIGHT_RESISTOR_PIN = A4;
 
 //app constants
 const int LED_ON = 255;
@@ -18,38 +25,45 @@ const int MAX_INTERVAL = 4000;
 const long INTERVAL_RANDOM_COEFF = 60;//% -> 0.6
 const long SPURT_INTERVAL_COEFF = 70;//% -> 0.7
 const long SPURT_PROBABILITY_COEFF = 5;//% -> 0.5
-const int LEFT_FRONT = 0;
-const int LEFT_HOOK = 1;
-const int RIGHT_FRONT = 2;
-const int RIGHT_HOOK = 3;
+const int HIGH_LEFT_UPPERCUT = 0;
+const int HIGH_LEFT_FRONT = 1;
+const int HIGH_LEFT_HOOK = 2;
+const int HIGH_RIGHT_UPPERCUT = 3;
+const int HIGH_RIGHT_FRONT = 4;
+const int HIGH_RIGHT_HOOK = 5;
 const int ANALOG_RANGE = 1024;
-const int MAX_SPURT = 10;
+const int ANALOG_MIN_THRESHOLD = 15;
+const int MAX_HITS_IN_SPURT = 10;
 
 //variables
-long leftFrontTurnOnMillis;
-long leftHookTurnOnMillis;
-long rightFrontTurnOnMillis;
-long rightHookTurnOnMillis;
+long highLeftFrontTurnOnMillis;
+long highLeftHookTurnOnMillis;
+long highLeftUppercutTurnOnMillis;
+long highRightFrontTurnOnMillis;
+long highRightHookTurnOnMillis;
+long highRightUppercutTurnOnMillis;
 long lastTurnOn;
 long nextDelay;
 boolean spurtTime;
-int spurtCounter;
-int currentSpurt;
+int currentSpurtHit;
+int totalHitsInThisSpurt;
 
 
 void setup() { 
-  pinMode(LEFT_FRONT_LED_PIN, OUTPUT);
-  pinMode(LEFT_HOOK_LED_PIN, OUTPUT);
-  pinMode(RIGHT_FRONT_LED_PIN, OUTPUT);
-  pinMode(RIGHT_HOOK_LED_PIN, OUTPUT);
-//  Serial.begin(9600); 
+  pinMode(HIGH_LEFT_UPPERCUT_LED_PIN, OUTPUT);
+  pinMode(HIGH_LEFT_FRONT_LED_PIN, OUTPUT);
+  pinMode(HIGH_LEFT_HOOK_LED_PIN, OUTPUT);
+  pinMode(HIGH_RIGHT_UPPERCUT_LED_PIN, OUTPUT);
+  pinMode(HIGH_RIGHT_FRONT_LED_PIN, OUTPUT);
+  pinMode(HIGH_RIGHT_HOOK_LED_PIN, OUTPUT);
+  Serial.begin(9600);
 } 
 
 void loop() {
   turnOffWithDelay();
-
+ 
   if (isTimeToTurnOn()) {
-    turnOn(getWhichTurnOn());
+    turnOn(getWhichToTurnOn());
     processSpurt();
     nextDelay = getNextDelay();
   }
@@ -60,20 +74,28 @@ void loop() {
 void turnOffWithDelay() {
   long now = millis();
 
-  if(leftFrontTurnOnMillis + LED_ON_MILLIS < now) {
-    analogWrite(LEFT_FRONT_LED_PIN, LED_OFF);
+  if(highLeftFrontTurnOnMillis + LED_ON_MILLIS < now) {
+    analogWrite(HIGH_LEFT_FRONT_LED_PIN, LED_OFF);
   }
   
-  if(leftHookTurnOnMillis + LED_ON_MILLIS < now) {
-    analogWrite(LEFT_HOOK_LED_PIN, LED_OFF);
-  }
-  
-  if(rightFrontTurnOnMillis + LED_ON_MILLIS < now) {
-    analogWrite(RIGHT_FRONT_LED_PIN, LED_OFF);
+  if(highLeftHookTurnOnMillis + LED_ON_MILLIS < now) {
+    analogWrite(HIGH_LEFT_HOOK_LED_PIN, LED_OFF);
   }
 
-  if(rightHookTurnOnMillis + LED_ON_MILLIS < now) {
-    analogWrite(RIGHT_HOOK_LED_PIN, LED_OFF);
+  if(highLeftUppercutTurnOnMillis + LED_ON_MILLIS < now) {
+    analogWrite(HIGH_LEFT_UPPERCUT_LED_PIN, LED_OFF);
+  }
+  
+  if(highRightFrontTurnOnMillis + LED_ON_MILLIS < now) {
+    analogWrite(HIGH_RIGHT_FRONT_LED_PIN, LED_OFF);
+  }
+
+  if(highRightHookTurnOnMillis + LED_ON_MILLIS < now) {
+    analogWrite(HIGH_RIGHT_HOOK_LED_PIN, LED_OFF);
+  }
+
+  if(highRightUppercutTurnOnMillis + LED_ON_MILLIS < now) {
+    analogWrite(HIGH_RIGHT_UPPERCUT_LED_PIN, LED_OFF);
   }
 }
 
@@ -82,21 +104,29 @@ void turnOn(int led) {
   lastTurnOn = now;
   
   switch (led) {
-    case LEFT_FRONT:
-      analogWrite(LEFT_FRONT_LED_PIN, LED_ON);
-      leftFrontTurnOnMillis = now;
+    case HIGH_LEFT_FRONT:
+      analogWrite(HIGH_LEFT_FRONT_LED_PIN, LED_ON);
+      highLeftFrontTurnOnMillis = now;
       break;
-    case LEFT_HOOK:
-      analogWrite(LEFT_HOOK_LED_PIN, LED_ON);
-      leftHookTurnOnMillis = now;
+    case HIGH_LEFT_HOOK:
+      analogWrite(HIGH_LEFT_HOOK_LED_PIN, LED_ON);
+      highLeftHookTurnOnMillis = now;
       break;
-    case RIGHT_FRONT:
-      analogWrite(RIGHT_FRONT_LED_PIN, LED_ON);
-       rightFrontTurnOnMillis = now;
+    case HIGH_LEFT_UPPERCUT:
+      analogWrite(HIGH_LEFT_UPPERCUT_LED_PIN, LED_ON);
+      highLeftHookTurnOnMillis = now;
+      break;  
+    case HIGH_RIGHT_FRONT:
+      analogWrite(HIGH_RIGHT_FRONT_LED_PIN, LED_ON);
+       highRightFrontTurnOnMillis = now;
       break;
-    case RIGHT_HOOK:
-      analogWrite(RIGHT_HOOK_LED_PIN, LED_ON);
-      rightHookTurnOnMillis = now;
+    case HIGH_RIGHT_HOOK:
+      analogWrite(HIGH_RIGHT_HOOK_LED_PIN, LED_ON);
+      highRightHookTurnOnMillis = now;
+      break;
+    case HIGH_RIGHT_UPPERCUT:
+      analogWrite(HIGH_RIGHT_UPPERCUT_LED_PIN, LED_ON);
+      highRightUppercutTurnOnMillis = now;
       break;
   }
 }
@@ -113,11 +143,45 @@ boolean isTimeToTurnOn() {
   return lastTurnOn + nextDelay < millis();
 }
 
-int getWhichTurnOn() {
-  int rnd = random(2);
-  return shouldTurnOnLeft()
-   ? rnd
-   : rnd + 2;
+int getWhichToTurnOn() {
+  int frontResistorPosition = analogRead(FRONT_PROBABILITY_PIN);
+  int uppercutResistorPosition = analogRead(UPPERCUT_PROBABILITY_PIN);
+  int hookResistorPosition = analogRead(HOOK_PROBABILITY_PIN);
+  
+  int frontRandomValue = random(frontResistorPosition);
+  int uppercutRandomValue = random(uppercutResistorPosition);
+  int hookRandomValue = random(hookResistorPosition);
+
+  Serial.println(frontResistorPosition);
+  Serial.println(uppercutResistorPosition);
+  Serial.println(hookResistorPosition);
+  Serial.println(frontRandomValue);
+  Serial.println(uppercutRandomValue);
+  Serial.println(hookRandomValue);
+  Serial.println("");
+
+  if (frontResistorPosition <= ANALOG_MIN_THRESHOLD
+        && uppercutResistorPosition <= ANALOG_MIN_THRESHOLD
+        && hookResistorPosition <= ANALOG_MIN_THRESHOLD) {
+          
+    return -1; //not to turn on any led  
+  }
+  
+  if (frontRandomValue > ANALOG_MIN_THRESHOLD 
+        && frontRandomValue > uppercutRandomValue 
+        && frontRandomValue > hookRandomValue) {
+          
+    return shouldTurnOnLeft() ? HIGH_LEFT_FRONT: HIGH_RIGHT_FRONT;
+  }
+
+  if (uppercutRandomValue > ANALOG_MIN_THRESHOLD
+        && uppercutRandomValue > frontRandomValue 
+        && uppercutRandomValue > hookRandomValue) {
+          
+    return shouldTurnOnLeft() ? HIGH_LEFT_UPPERCUT : HIGH_RIGHT_UPPERCUT;
+  }
+
+  return shouldTurnOnLeft() ? HIGH_LEFT_HOOK : HIGH_RIGHT_HOOK;
 }
 
 boolean shouldTurnOnLeft() {
@@ -125,11 +189,11 @@ boolean shouldTurnOnLeft() {
 }
 
 void processSpurt() {
-  if (spurtTime && spurtCounter < currentSpurt - 1) {
-    spurtCounter++;
+  if (spurtTime && currentSpurtHit < totalHitsInThisSpurt - 1) {
+    currentSpurtHit++;
     return;
   } else if (spurtTime) {
-    spurtCounter = 0;
+    currentSpurtHit = 0;
     spurtTime = false;
     return;
   }
@@ -137,7 +201,7 @@ void processSpurt() {
   spurtTime = random(100) < SPURT_PROBABILITY_COEFF;
 
   if (spurtTime) {
-    currentSpurt = random(3, MAX_SPURT + 1);
+    totalHitsInThisSpurt = random(3, MAX_HITS_IN_SPURT + 1);
   }
 }
 
